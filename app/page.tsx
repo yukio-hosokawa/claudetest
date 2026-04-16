@@ -15,7 +15,7 @@ export default function TopPage() {
   }
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const chars = [...e.target.value]
+    const chars = Array.from(e.target.value)
     if (chars.length <= 20) {
       setName(e.target.value)
     }
@@ -96,7 +96,7 @@ export default function TopPage() {
             placeholder="例：山田 太郎"
           />
           <p className="text-gray-400 text-xs mt-1">
-            入力文字数：{[...name].length} / 20
+            入力文字数：{Array.from(name).length} / 20
           </p>
           {errors.name && (
             <p className="text-red-500 text-xs mt-1">{errors.name}</p>

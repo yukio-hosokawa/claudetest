@@ -34,7 +34,7 @@ export default function SurveyPage() {
   }, [router])
 
   const truncateDisplay = (str: string, len: number) => {
-    const chars = [...str]
+    const chars = Array.from(str)
     if (chars.length <= len) return str
     return chars.slice(0, len).join('') + '…'
   }

@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
       id: uuidv4(),
       timestamp: new Date().toISOString(),
       roomNumber: String(roomNumber).slice(0, 4),
-      name: [...String(name)].slice(0, 20).join(''),
+      name: Array.from(String(name)).slice(0, 20).join(''),
       renovationPeriod: String(renovationPeriod),
       renovationPeriodOther: renovationPeriodOther ? String(renovationPeriodOther) : undefined,
       repairFundPlan: String(repairFundPlan),
