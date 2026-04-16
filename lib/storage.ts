@@ -10,8 +10,8 @@ function isBlobConfigured(): boolean {
 
 async function blobSave(response: SurveyResponse): Promise<void> {
   const { put } = await import('@vercel/blob')
+  // プライベートストアでは access: 'public' を指定しない
   await put(`${BLOB_PREFIX}${response.id}.json`, JSON.stringify(response), {
-    access: 'public',
     contentType: 'application/json',
     addRandomSuffix: false,
   })
@@ -19,11 +19,15 @@ async function blobSave(response: SurveyResponse): Promise<void> {
 
 async function blobGetAll(): Promise<SurveyResponse[]> {
   const { list } = await import('@vercel/blob')
-  const { blobs } = await list({ prefix: BLOB_PREFIX })
+  const token = process.env.BLOB_READ_WRITE_TOKEN!
+  const { blobs } = await list({ prefix: BLOB_PREFIX, token })
   if (blobs.length === 0) return []
   const results = await Promise.all(
     blobs.map(async (blob) => {
-      const res = await fetch(blob.url)
+      // プライベートストアは Authorization ヘッダーで認証して取得
+      const res = await fetch(blob.url, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
       return res.json() as Promise<SurveyResponse>
     })
   )
