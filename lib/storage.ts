@@ -1,25 +1,33 @@
 import type { SurveyResponse } from '@/types/survey'
 
-const RESPONSES_KEY = 'survey_responses'
+const BLOB_PREFIX = 'responses/'
 
-function isKvConfigured(): boolean {
-  return !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN)
+function isBlobConfigured(): boolean {
+  return !!process.env.BLOB_READ_WRITE_TOKEN
 }
 
-// ---- Vercel KV (本番) ----
+// ---- Vercel Blob (本番) ----
 
-async function kvSave(response: SurveyResponse): Promise<void> {
-  const { kv } = await import('@vercel/kv')
-  await kv.rpush(RESPONSES_KEY, JSON.stringify(response))
-}
-
-async function kvGetAll(): Promise<SurveyResponse[]> {
-  const { kv } = await import('@vercel/kv')
-  const raw = await kv.lrange<string>(RESPONSES_KEY, 0, -1)
-  return raw.map((item) => {
-    if (typeof item === 'string') return JSON.parse(item) as SurveyResponse
-    return item as unknown as SurveyResponse
+async function blobSave(response: SurveyResponse): Promise<void> {
+  const { put } = await import('@vercel/blob')
+  await put(`${BLOB_PREFIX}${response.id}.json`, JSON.stringify(response), {
+    access: 'public',
+    contentType: 'application/json',
+    addRandomSuffix: false,
   })
+}
+
+async function blobGetAll(): Promise<SurveyResponse[]> {
+  const { list } = await import('@vercel/blob')
+  const { blobs } = await list({ prefix: BLOB_PREFIX })
+  if (blobs.length === 0) return []
+  const results = await Promise.all(
+    blobs.map(async (blob) => {
+      const res = await fetch(blob.url)
+      return res.json() as Promise<SurveyResponse>
+    })
+  )
+  return results.sort((a, b) => a.timestamp.localeCompare(b.timestamp))
 }
 
 // ---- ローカルファイル (開発用フォールバック) ----
@@ -54,16 +62,16 @@ async function fileGetAll(): Promise<SurveyResponse[]> {
 // ---- 公開 API ----
 
 export async function saveResponse(response: SurveyResponse): Promise<void> {
-  if (isKvConfigured()) {
-    await kvSave(response)
+  if (isBlobConfigured()) {
+    await blobSave(response)
   } else {
     await fileSave(response)
   }
 }
 
 export async function getAllResponses(): Promise<SurveyResponse[]> {
-  if (isKvConfigured()) {
-    return kvGetAll()
+  if (isBlobConfigured()) {
+    return blobGetAll()
   }
   return fileGetAll()
 }
