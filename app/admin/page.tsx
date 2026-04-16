@@ -22,7 +22,12 @@ export default function AdminPage() {
         return
       }
       if (!res.ok) {
-        setError('エラーが発生しました。')
+        try {
+          const body = await res.json()
+          setError(body.error ?? 'エラーが発生しました。')
+        } catch {
+          setError(`エラーが発生しました。（HTTP ${res.status}）`)
+        }
         setLoading(false)
         return
       }
